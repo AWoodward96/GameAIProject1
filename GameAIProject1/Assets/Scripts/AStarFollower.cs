@@ -1,9 +1,11 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.AI;
 
 public class AStarFollower : MonoBehaviour {
 
+    
 
     CharacterController myCC; // Use Unities Character controller so we don't have to do the entire physics engine
 
@@ -16,7 +18,6 @@ public class AStarFollower : MonoBehaviour {
     public float Friction;
     [Range(0, 10)]
     public float Gravity;
-
 
     [Header("Path Finding")]
     public List<Node> myPath;
