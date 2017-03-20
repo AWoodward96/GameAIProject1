@@ -62,6 +62,18 @@ public class FlockingManager : MonoBehaviour {
 
         //Draw a debug line where the centroid is
         Debug.DrawLine(centroid, new Vector3(centroid.x, centroid.y + 1, centroid.z), Color.cyan);
+
+        //left click
+        if (Input.GetMouseButtonDown(0))
+        {
+            RaycastHit data;
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+
+            if (Physics.Raycast(ray, out data))
+            {
+                target.position = new Vector3(data.point.x, data.point.y + 0.5f, data.point.z);
+            }
+        }
     }
 
     //Calculates the center of the entire flock

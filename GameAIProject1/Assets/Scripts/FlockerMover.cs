@@ -21,12 +21,18 @@ public class FlockerMover : MonoBehaviour {
     public Transform target;
     public List<GameObject> flock;
     public Vector3 flockCentroid;
-    public float cohesionDistance;
+    public float arrivalDistance;
     public float separationDistance;
     public float lookAhead;
+    public float wallForce;
+    public float congestionRadius;
 
-    private float whiskerTheta = Mathf.PI / 18; //10 degrees
     private Vector3[] whiskers = new Vector3[3];
+    private Vector3 normalizedVelocity;
+    private Vector3 left;
+    private Vector3 right;
+    private bool cohesionFlag = true;
+    private bool separationFlag = true;
 
     Vector3 Acceleration;
     Vector3 Velocity; // There's a built in velocity in the myCC but we'll have our own
@@ -38,16 +44,36 @@ public class FlockerMover : MonoBehaviour {
 
     void Update()
     {
+        //calculate the left and right of the flocker
+        normalizedVelocity = myCC.velocity.normalized;
+        left = new Vector3(normalizedVelocity.z, normalizedVelocity.y, -normalizedVelocity.x);
+        right = new Vector3(-normalizedVelocity.z, normalizedVelocity.y, normalizedVelocity.x);
+
         ApplyForce(Vector3.down * Gravity); // To simulate gravity
         // Unity will detect a collision and prevent the cube from moving through the ground therefore no raycast is necessary
 
         //Calculate flocking forces
         Seek();
-        Cohesion();
+
+        //cast navmesh raycasts to the left and right of the flocker, if they both hit, don't run cohesion
+        NavMeshHit hit1, hit2;
+        NavMesh.Raycast(transform.position, transform.position + (left * congestionRadius), out hit1, NavMesh.AllAreas);
+        NavMesh.Raycast(transform.position, transform.position + (right * congestionRadius), out hit2, NavMesh.AllAreas);
+
+        if (!(hit1.hit && hit2.hit))
+        {
+            if (cohesionFlag)
+                Cohesion();
+        }
+
         Separation();
         AvoidEdge();
 
+        HandleInput();
+
         CalcForces();
+
+        Debug.DrawLine(transform.position, transform.position + myCC.velocity, Color.black);
     }
 
     //Add a new force to acceleration
@@ -68,8 +94,10 @@ public class FlockerMover : MonoBehaviour {
 
     void Seek()
     {
-        if (Vector3.Distance(transform.position, target.position) <= cohesionDistance)
+        if (Vector3.Distance(transform.position, target.position) <= arrivalDistance)
+        {
             return;
+        }
 
         Vector3 desired;
 
@@ -126,30 +154,78 @@ public class FlockerMover : MonoBehaviour {
     {
         NavMeshHit data;
 
-        Vector3 normalizedVelocity = myCC.velocity.normalized;
-        Vector3 left = new Vector3(normalizedVelocity.z, normalizedVelocity.y, -normalizedVelocity.x);
-        Vector3 right = new Vector3(-normalizedVelocity.z, normalizedVelocity.y, normalizedVelocity.x);
-
         Vector3 middleWhisker = normalizedVelocity;
         middleWhisker *= lookAhead;
         middleWhisker += transform.position;
 
-        //Vector3 leftWhisker = Vector3.rot
+        Vector3 rightWhisker = middleWhisker + left;
+        Vector3 leftWhisker = middleWhisker + right;
+
+        /*  Draw debug lines for the whiskers
+        Debug.DrawLine(transform.position, rightWhisker, Color.magenta);
+        Debug.DrawLine(transform.position, middleWhisker, Color.magenta);
+        Debug.DrawLine(transform.position, leftWhisker, Color.magenta);
+        */
+
+        whiskers[0] = leftWhisker;
+        whiskers[1] = middleWhisker;
+        whiskers[2] = rightWhisker;
 
         for (int i = 0; i < whiskers.Length; i++)
         {
-            
+            NavMesh.Raycast(transform.position, whiskers[i], out data, NavMesh.AllAreas);
+
+            if (data.hit)
+            {
+                float distanceToHit = Vector3.Distance(new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z), data.position);
+
+                NavMeshHit closeEdgeData;
+                NavMesh.FindClosestEdge(transform.position, out closeEdgeData, NavMesh.AllAreas);
+                float distanceToEdge = Vector3.Distance(new Vector3(transform.position.x, transform.position.y - 0.5f, transform.position.z), closeEdgeData.position);
+
+                //Debug.Log(distanceToEdge);
+
+                //Don't push me, cuz I'm close to the edge.
+                if (distanceToEdge < 0.15)
+                {
+                    Bounce(closeEdgeData);
+                }
+
+                float distanceCoefficient = distanceToHit / Vector3.Distance(transform.position, whiskers[i]);
+                ApplyForce(data.normal * (wallForce * (1 - distanceCoefficient)));
+                return;
+            }
         }
+    }
 
-
-        //NavMesh.Raycast(transform.position, transform.position + rayTarget, out data, NavMesh.AllAreas);
-
-        //Draw a debug line where the raycast hits the edge
-        Debug.DrawLine(data.position, new Vector3(data.position.x, data.position.y + 1, data.position.z), Color.magenta);
+    //Called when the flocker needs to stop moving
+    void Bounce(NavMeshHit closeEdgeData)
+    {
+        ApplyForce((closeEdgeData.normal * 4));
     }
 
     Vector3 zeroYComponent(Vector3 _vec)
     {
         return new Vector3(_vec.x, 0, _vec.z);
+    }
+
+    void HandleInput()
+    {
+        //doubles cohesion strength
+        if (Input.GetKeyDown(KeyCode.C))
+        {
+            cohesionFlag = !cohesionFlag;
+        }
+
+        //doubles separation strength
+        if (Input.GetKeyDown(KeyCode.S))
+        {
+            if (separationFlag)
+                separationDistance *= 4;
+            else
+                separationDistance *= 0.25f;
+
+            separationFlag = !separationFlag;
+        }
     }
 }
