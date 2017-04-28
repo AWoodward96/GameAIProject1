@@ -26,6 +26,8 @@ public class Grid : MonoBehaviour {
 
     public Node[,] GridNodes;
 
+	private List<GameObject> units = new List<GameObject>(); //a list of all the units on the terrain
+
 	// Use this for initialization
 	void Awake () {
         instance = this;
@@ -100,6 +102,9 @@ public class Grid : MonoBehaviour {
 
     private void OnDrawGizmos()
     {
+		//adds every Unit to the list
+		units.AddRange (GameObject.FindGameObjectsWithTag ("Units"));
+
         // Draw the wire cube
         Gizmos.DrawWireCube(transform.position, new Vector3(GridSpace.x, 3, GridSpace.y));
 
@@ -110,9 +115,37 @@ public class Grid : MonoBehaviour {
             {
                 for (int y = 0; y < gridSizeY; y++)
                 {
-                    Gizmos.color = (GridNodes[x, y].State == Node.NodeState.Walkable) ? Color.green : Color.red;
+                    //Gizmos.color = (GridNodes[x, y].State == Node.NodeState.Walkable) ? Color.grey : Color.red;
 
-                    Gizmos.DrawCube(GridNodes[x, y].WorldPosition, new Vector3(NodeSize,NodeSize,NodeSize));
+					//checks against every unit on the terrain
+					for (int i = 0; i < units.Count; i++) {
+						float dist = Vector3.Distance (units [i].transform.position, GridNodes [x, y].WorldPosition); //distance between cube and the unit
+
+						//every unit
+						//create the weaker color as far as the units influence goes
+						if (units [i].GetComponent<UnitScript> ().strength > 0) {
+							if (dist <= NodeSize * (units [i].GetComponent<UnitScript> ().strength+1)) {
+								Gizmos.color = units [i].GetComponent<UnitScript> ().col * (Color.white / 2);
+							}
+						}
+						//every unit with strength 2+
+						//create the medium color 2/3 of the influence closest to center
+						if (units [i].GetComponent<UnitScript> ().strength > 1) {
+							if (dist <= NodeSize * (units [i].GetComponent<UnitScript> ().strength+1)/1.5) {
+								Gizmos.color = units [i].GetComponent<UnitScript> ().col * (Color.white);
+							}
+						}
+						//every unit with strength 4
+						//create the darkest color 1/3 of the influence closest to center
+						if (units [i].GetComponent<UnitScript> ().strength > 3) {
+							if (dist <= NodeSize * (units [i].GetComponent<UnitScript> ().strength+1)/3) {
+								Gizmos.color = units [i].GetComponent<UnitScript> ().col * 2;
+							}
+						}
+
+					}
+					//draw the cubes
+					Gizmos.DrawCube (GridNodes [x, y].WorldPosition, new Vector3 (NodeSize, NodeSize, NodeSize));
                 }
             } 
         }
