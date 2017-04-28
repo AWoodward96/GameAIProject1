@@ -115,7 +115,7 @@ public class Grid : MonoBehaviour {
             {
                 for (int y = 0; y < gridSizeY; y++)
                 {
-                    //Gizmos.color = (GridNodes[x, y].State == Node.NodeState.Walkable) ? Color.grey : Color.red;
+                    Gizmos.color = (GridNodes[x, y].State == Node.NodeState.Walkable) ? Color.white : Color.red;
 
 					//checks against every unit on the terrain
 					for (int i = 0; i < units.Count; i++) {
