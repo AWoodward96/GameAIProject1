@@ -17,6 +17,9 @@ public class Node : IHeapItem<Node>
 
     public enum NodeState { Walkable, UnWalkable };
     public NodeState State;
+     
+    public UnitScript myOccupant;
+    public GameObject Visualization;
 
     // For A*
     public int gCost;
@@ -31,6 +34,11 @@ public class Node : IHeapItem<Node>
 
         set
         { heapIndex = value; }
+    }
+
+    public bool Occupied
+    {
+        get { return myOccupant != null; }
     }
 
     public int fCost

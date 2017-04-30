@@ -18,6 +18,7 @@ public class Grid : MonoBehaviour {
 
     public LayerMask GroundMask; // The ground, where the node positions will be
     public LayerMask ObstacleMask; // Obstacles that might want to be avoided. Will be checking for this mask at every node position to mark a node as unwalkable
+    public GameObject TileObject;
 
     public bool ShowGridGizmos; // For visualizing the grids WARNING: CAN BECOME EXTREMELY LAGGY IF YOU HAVE A VERY SMALL NODE SIZE OVER A LARGE AREA
 
@@ -25,8 +26,8 @@ public class Grid : MonoBehaviour {
     int gridSizeY; // How many nodes are on the Y Axis
 
     public Node[,] GridNodes;
-
-	private List<GameObject> units = new List<GameObject>(); //a list of all the units on the terrain
+     
+ 
 
 	// Use this for initialization
 	void Awake () {
@@ -59,6 +60,10 @@ public class Grid : MonoBehaviour {
                     // If we hit then there's the potential for this node to be walkable
                     // Set the world position to this point
                     currentNode.WorldPosition = hit.point;
+
+                    currentNode.Visualization = (GameObject)Instantiate(TileObject, hit.point + (Vector3.up/2), Quaternion.identity);
+                    currentNode.Visualization.name = x + ", " + y;
+                    currentNode.Visualization.SetActive(false);
 
                     // Check that area for an obstacle
                     if(!Physics.CheckBox(hit.point, new Vector3(NodeSize / 2, NodeSize / 2, NodeSize / 2), Quaternion.identity, ObstacleMask))
@@ -100,13 +105,90 @@ public class Grid : MonoBehaviour {
         return GridNodes[x, y];
     }
 
-    private void OnDrawGizmos()
-    {
-		//adds every Unit to the list
-		units.AddRange (GameObject.FindGameObjectsWithTag ("Units"));
 
+    // Called from the CameraScript
+    // Turns the tile game objects on and off
+    public void ShowTiles(bool _show)
+    {
+        for (int x = 0; x < gridSizeX; x++)
+        {
+            for (int y = 0; y < gridSizeY; y++)
+            {
+                Node currentNode = GridNodes[x,y];
+                if(currentNode.Visualization != null)
+                    currentNode.Visualization.SetActive(_show);
+            }
+        }
+
+        if (_show)
+            UpdateTiles();
+    }
+
+    // Updates the tiles colors based on the location of the units
+    // Called when we toggle the tiles on
+    public void UpdateTiles()
+    {
+        // First get all of the units in the scene
+        GameObject[] AllUnits = GameObject.FindGameObjectsWithTag("Units"); 
+
+        Color currentColor = Color.white;
+
+        for (int x = 0; x < gridSizeX; x++)
+        {
+            for (int y = 0; y < gridSizeY; y++)
+            {
+                currentColor = Color.white;
+                
+                for(int i =0; i < AllUnits.Length; i++)
+                {
+                    float dist = Vector3.Distance(AllUnits[i].transform.position, GridNodes[x, y].WorldPosition); //distance between tile location and the unit
+                    GameObject currentTile = GridNodes[x, y].Visualization;
+ 
+
+                    //every unit
+                    //create the weaker color as far as the units influence goes
+                    if (AllUnits[i].GetComponent<UnitScript>().strength > 0)
+                    {
+                        if (dist <= NodeSize * (AllUnits[i].GetComponent<UnitScript>().strength + 1))
+                        {
+                            currentColor = AllUnits[i].GetComponent<UnitScript>().col * (Color.white / 2);
+                        }
+                    }
+                    //every unit with strength 2+
+                    //create the medium color 2/3 of the influence closest to center
+                    if (AllUnits[i].GetComponent<UnitScript>().strength > 1)
+                    {
+                        if (dist <= NodeSize * (AllUnits[i].GetComponent<UnitScript>().strength + 1) / 1.5)
+                        {
+                            currentColor = AllUnits[i].GetComponent<UnitScript>().col * (Color.white);
+                        }
+                    }
+                    //every unit with strength 4
+                    //create the darkest color 1/3 of the influence closest to center
+                    if (AllUnits[i].GetComponent<UnitScript>().strength > 3)
+                    {
+                        if (dist <= NodeSize * (AllUnits[i].GetComponent<UnitScript>().strength + 1) / 3)
+                        {
+                            currentColor = AllUnits[i].GetComponent<UnitScript>().col * 2; 
+                        }
+                    } 
+                    if(currentTile != null)
+                    {
+                        currentColor.a = .5f;
+                        currentTile.GetComponent<Renderer>().material.color = currentColor; 
+                    }
+                }
+            }
+        }
+
+    }
+
+    private void OnDrawGizmos()
+    { 
         // Draw the wire cube
         Gizmos.DrawWireCube(transform.position, new Vector3(GridSpace.x, 3, GridSpace.y));
+
+ 
 
         // Show each node depending on its state
         if(ShowGridGizmos && Application.isPlaying)
@@ -116,10 +198,13 @@ public class Grid : MonoBehaviour {
                 for (int y = 0; y < gridSizeY; y++)
                 {
                     Gizmos.color = (GridNodes[x, y].State == Node.NodeState.Walkable) ? Color.white : Color.red;
-
+                    /*
 					//checks against every unit on the terrain
 					for (int i = 0; i < units.Count; i++) {
 						float dist = Vector3.Distance (units [i].transform.position, GridNodes [x, y].WorldPosition); //distance between cube and the unit
+
+                        if (dist > 5)
+                            continue;
 
 						//every unit
 						//create the weaker color as far as the units influence goes
@@ -143,7 +228,7 @@ public class Grid : MonoBehaviour {
 							}
 						}
 
-					}
+					}*/
 					//draw the cubes
 					Gizmos.DrawCube (GridNodes [x, y].WorldPosition, new Vector3 (NodeSize, NodeSize, NodeSize));
                 }
