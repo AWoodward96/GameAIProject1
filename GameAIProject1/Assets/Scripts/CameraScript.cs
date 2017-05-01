@@ -203,7 +203,7 @@ public class CameraScript : MonoBehaviour {
         Ray r = currentCamera.ScreenPointToRay(mousePosition); // This turns that mouse position into a vector (or ray rather) that starts at the cursors location (in world space) and points in the direction the camera faces.
         RaycastHit hit;
         Vector3 hitPos = Vector3.zero;
-        if(Physics.Raycast(r,out hit,50,LayerMask.GetMask("Ground")))
+        if(Physics.Raycast(r,out hit,200,LayerMask.GetMask("Ground")))
         {
             hitPos = hit.point;
         }

@@ -48,8 +48,8 @@ public class Grid : MonoBehaviour {
         for (int x = 0; x < gridSizeX; x++)
         {
             for(int y = 0; y < gridSizeY; y++)
-            { 
-                Node currentNode = new Node(x,y);
+            {
+                Node currentNode = new Node(x, y);
 
                 // Do the raycast check for the ground
                 Vector3 currentDisplacement = new Vector3(x * NodeSize, 0, y * NodeSize);
@@ -100,8 +100,8 @@ public class Grid : MonoBehaviour {
         percentX = Mathf.Clamp01(percentX);
         percentY = Mathf.Clamp01(percentY);
 
-        int x = Mathf.RoundToInt((gridSizeX - 1) * percentX);
-        int y = Mathf.RoundToInt((gridSizeY - 1) * percentY);
+        int x = Mathf.RoundToInt((gridSizeX) * percentX);
+        int y = Mathf.RoundToInt((gridSizeY) * percentY);
         return GridNodes[x, y];
     }
 
@@ -121,7 +121,9 @@ public class Grid : MonoBehaviour {
         }
 
         if (_show)
+        {
             UpdateTiles();
+        }
     }
 
     // Updates the tiles colors based on the location of the units
@@ -139,7 +141,7 @@ public class Grid : MonoBehaviour {
             {
                 currentColor = Color.white;
                 
-                for(int i =0; i < AllUnits.Length; i++)
+                for(int i = 0; i < AllUnits.Length; i++)
                 {
                     float dist = Vector3.Distance(AllUnits[i].transform.position, GridNodes[x, y].WorldPosition); //distance between tile location and the unit
                     GameObject currentTile = GridNodes[x, y].Visualization;
@@ -184,7 +186,9 @@ public class Grid : MonoBehaviour {
     }
 
     private void OnDrawGizmos()
-    { 
+    {
+        Debug.Log("hit");
+
         // Draw the wire cube
         Gizmos.DrawWireCube(transform.position, new Vector3(GridSpace.x, 3, GridSpace.y));
 

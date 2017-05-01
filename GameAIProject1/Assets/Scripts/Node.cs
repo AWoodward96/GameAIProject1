@@ -21,6 +21,11 @@ public class Node : IHeapItem<Node>
     public UnitScript myOccupant;
     public GameObject Visualization;
 
+    //An enum containing the actor colors that could "win" the node
+    public enum NodeAffector { None, Black, Yellow, Blue, White}
+    public NodeAffector nodeWinner = NodeAffector.None; //default to none, changed when the influence map is affected
+    public int affectorStrength = 0; //default
+
     // For A*
     public int gCost;
     public int hCost;
